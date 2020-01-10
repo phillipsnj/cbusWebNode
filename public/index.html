@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>CBUS Test Application</title>
+    <style>
+
+    </style>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link href="/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
+    <link rel='stylesheet' type="text/css" href='/stylesheets/style.css'/>
+    <!--<link href="/stylesheets/starter-template.css" rel="stylesheet">-->
+</head>
+<body>
+
+<div class="container">
+    <div class="page-header">
+        <h1>ETHACC8
+            <small>Test System</small>
+        </h1>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="row">
+                <div class="btn-group" role="group" aria-label="...">
+                    <button id="led1" type="button" class="btn btn-lg btn-default" disabled>1</button>
+                    <button id="led2" type="button" class="btn btn-lg btn-default" disabled>2</button>
+                    <button id="led3" type="button" class="btn btn-lg btn-default" disabled>3</button>
+                    <button id="led4" type="button" class="btn btn-lg btn-default" disabled>4</button>
+                    <button id="led5" type="button" class="btn btn-lg btn-default" disabled>5</button>
+                    <button id="led6" type="button" class="btn btn-lg btn-default" disabled>6</button>
+                    <button id="led7" type="button" class="btn btn-lg btn-default" disabled>7</button>
+                    <button id="led8" type="button" class="btn btn-lg btn-default" disabled>8</button>
+                </div>
+            </div>
+            <div class="row"></div>
+            <div class="row">
+                <div class="btn-group" role="group" aria-label="...">
+                    <button id="btn1" type="button" class="btn btn-lg btn-danger">1</button>
+                    <button id="btn2" type="button" class="btn btn-lg btn-danger">2</button>
+                    <button id="btn3" type="button" class="btn btn-lg btn-danger">3</button>
+                    <button id="btn4" type="button" class="btn btn-lg btn-danger">4</button>
+                    <button id="btn5" type="button" class="btn btn-lg btn-danger">5</button>
+                    <button id="btn6" type="button" class="btn btn-lg btn-danger">6</button>
+                    <button id="btn7" type="button" class="btn btn-lg btn-danger">7</button>
+                    <button id="btn8" type="button" class="btn btn-lg btn-danger">8</button>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-md-4">
+            <div class="messages">
+                <ul id="messages" class="list-group"></ul>
+
+            </div>
+            <div class="form">
+                <form action="">
+                    <input id="m" autocomplete="off"/>
+                    <button>Send</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/jquery.min.js"></script>
+<script src="/javascripts/nodejsCbusNode.js"></script>
+<script src="/javascripts/nodejsCbusMessage.js"></script>
+
+<script>
+    $(function () {
+        var socket = io();
+        var node = new cbusNode(75);
+        var message = new cbusMessage();
+        var ledOperate = function(led,value){
+            if (value == 1){
+                if ($(led).hasClass('btn-default')){
+                    $(led).toggleClass('btn-danger');
+                    $(led).toggleClass('btn-default');
+                }
+            } else {
+                if ($(led).hasClass('btn-danger')) {
+                    $(led).toggleClass('btn-danger');
+                    $(led).toggleClass('btn-default');
+                }
+            }
+        };
+        node.addEvent(257,1,1);
+        node.addEvent(257,1,3);
+        node.addEvent(257,8,1);
+        node.addEvent(257,8,2);
+        node.addEvent(257,2,2);
+        node.addEvent(257,3,3);
+        node.addEvent(257,4,4);
+        node.addEvent(257,5,5);
+        node.addEvent(257,6,6);
+        node.addEvent(257,7,7);
+        node.addEvent(257,8,8);
+        console.log('Events : '+JSON.stringify(node.events,null,4));
+        var actions = {
+            '90': function () {
+                console.log('Accessory On: ');
+                var event = node.events.filter(function (item) {
+                    return (item.nodeId == message.nodeId() && item.eventId == message.eventId());
+                });
+                event.forEach(function (action) {
+                    if (tasks[action.task.toString()]) {
+                        tasks[action.task.toString()](1);
+                    }
+                })
+            },
+            '91': function () {
+                console.log('Accessory Off: ');
+                var event = node.events.filter(function (item) {
+                    return (item.nodeId == message.nodeId() && item.eventId == message.eventId());
+                });
+                event.forEach(function (action) {
+                    if (tasks[action.task.toString()]) {
+                        tasks[action.task.toString()](0);
+                    }
+                })
+            },
+            '0D': function () {
+                console.log('PNN :  ' + node.PNN());
+                socket.emit('data', node.PNN());
+            },
+            '73': function () {
+                console.log('RQNPN Output:  ' + message.index() + ' ' + node.RQNPN(message.index()));
+                socket.emit('data',node.RQNPN(message.index()));
+            },
+            'DEFAULT': function () {
+                console.log("Opcode " + message.opCode() + ' is not supported by this module');
+            }
+        };
+
+        var tasks = {
+            '1':function(value){
+                ledOperate('#led1',value);
+            },
+            '2':function(value){
+                ledOperate('#led2',value);
+            },
+            '3':function(value){
+                ledOperate('#led3',value);
+            },
+            '4':function(value){
+                ledOperate('#led4',value);
+            },
+            '5':function(value){
+                ledOperate('#led5',value);
+            },
+            '6':function(value){
+                ledOperate('#led6',value);
+            },
+            '7':function(value){
+                ledOperate('#led7',value);
+            },
+            '8':function(value){
+                ledOperate('#led8',value);
+            }
+        };
+
+        $('form').submit(function () {
+            socket.emit('chat message', $('#m').val());
+            socket.emit('data', $('#m').val());
+            $('#m').val('');
+            return false;
+        });
+        socket.on('chat message', function (msg) {
+            $('#messages').append($('<li>').text(msg));
+        });
+        socket.on('data', function (msg) {
+            message.message = msg.toString();
+            $('#messages').append($('<li>').text(message.message));
+            $("#messages").scrollTop($("#messages")[0].scrollHeight);
+            if (actions[message.opCode()]){
+                actions[message.opCode()]();
+            } else {
+                actions['DEFAULT']();
+            }
+        });
+        $('.btn').on('click', function () {
+            $(this).toggleClass('btn-danger');
+            $(this).toggleClass('btn-success');
+            var output = $(this).hasClass('btn-danger') ? node.ASOF(this.id.toString().slice(3)) : node.ASON(this.id.toString().slice(3));
+            $('#messages').append($('<li>').text(output));
+            socket.emit('data', output);
+            $("#messages").scrollTop($("#messages")[0].scrollHeight);
+        });
+    });
+</script>
+</body>
+</html>
